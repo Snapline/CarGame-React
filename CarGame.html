@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8" />
+	<meta lang="zh-CN">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="IE=8" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+	<title>赛车游戏</title>
+	<link href="css/style.css" rel="stylesheet"/>
+    <script src="http://static.runoob.com/assets/react/react-0.14.7/build/react.min.js"></script>
+    <script src="http://static.runoob.com/assets/react/react-0.14.7/build/react-dom.min.js"></script>
+    <script src="http://static.runoob.com/assets/react/browser.min.js"></script>
+</head>
+<body>
+<div id="reactCarGame"></div>
+<script type="text/babel">
+    // 创建游戏场地组件
+    var Tick;
+    var GameBoard = React.createClass({
+    	//@游戏容器 [board]，路面 [roadbed]，路面范围 [road]，主角车 [hero]，敌车 [enemy]，还有公里板 [kilo]，失败提示 [failbub]
+    	//游戏初始化 未开始 英雄位置0
+    	getInitialState : function(){
+	        return {
+	        	kilometer : 0,
+	            gameState : 0,
+	            heroLoc: 0,
+	            enemyLoc : 0,
+	            enemyType : 0,
+	            enemySpeed : 0,
+	            gameState : 0,
+	            gameStart :0,
+	            gameOver : 0,
+	            chunge : 0,
+	            aniEnd : true
+	        }
+	    },
+
+	    gameStart : function(){
+	    	this.setState({
+	    		kilometer : 0,
+	            heroLoc : 0,
+	            enemyLoc: 0,
+	            enemyType : 0,
+	            enemySpeed : 0,
+	            gameState : 1,
+	            gameStart :1,
+	            gameOver : 0,
+	            chunge : 0,
+	            aniEnd : true,
+	    	});
+	    	this.createEnemy();
+	    	this.gameTick(true);
+	    },
+
+	    //碰撞检测
+	    gameTick : function(state){
+	    	var _this = this,
+	    	crash = 620,
+	    	heroLoc,enemyLoc,trs,dis,kilometer=0;
+	    	if(state){
+	    		Tick = setInterval(function(){
+	    			trs = window.getComputedStyle(_this.refs.enemy,null).getPropertyValue("transform");
+	    			dis = trs.split(",")[5].replace(")","");
+	    			heroLoc = _this.state.heroLoc;
+                	enemyLoc = _this.state.enemyLoc;
+                	if(dis>crash &&dis<(crash+220) && heroLoc == enemyLoc){
+                		//碰撞
+	                    _this.gameOver();
+	                }
+	                kilometer ++;
+	                _this.setState({kilometer:kilometer});
+	                // if(kilometer%1000==0){
+	                //     _this.superMode();
+	                // }
+	    		},10) //60hz刷新
+	    	}else{
+            	clearInterval(Tick);
+        	}
+	    },
+
+	    //游戏进程
+	    gameOver : function(){
+	        this.setState({gameState : 1});
+	        this.setState({gameOver : 1})
+	        this.gameTick(false);
+	    },
+
+	    gameRestart : function(){
+	        this.gameStart();
+	    },
+
+	    //绑定键盘事件
+	    gameHandle : function(event){
+	    	if(this.state.gameState == 1){
+	    		switch(event.keyCode){
+	    			case 37:
+	    				this.setState({heroLoc:0});
+	    				break;
+					case 39:
+	    				this.setState({heroLoc:1});
+	    				break;
+	    		}
+	    	}
+	    },
+
+	    //创造敌人
+	    createEnemy : function(){
+	    	var _this = this;
+	    	var enemyClass,enemyLoc,enemySpeed,enemyType,
+	    		animationEnd=true;
+	    	setInterval(function(){
+	    		if(_this.state.aniEnd && _this.state.gameState == 1){
+	    			_this.setState({aniEnd : false});
+	    			//随机出现敌人车辆样式和赛道位置
+	                enemyType = Math.floor(Math.random()*3);
+	                enemyLoc = Math.round(Math.random());
+	                enemySpeed = Math.floor(Math.random()*3);
+	                _this.setState({enemyLoc : enemyLoc});
+	                _this.setState({enemyType : enemyType});
+	                _this.setState({enemySpeed : enemySpeed});
+	    		}
+	    	},1000);
+	    	_this.refs.enemy.addEventListener("webkitAnimationEnd",function(){
+	    		//敌人闪避退出后切换状态
+	    		_this.setState({aniEnd:true})
+	    	})
+	    },
+
+	    //渲染后绑定事件
+	    componentDidMount : function(){
+	    	window.addEventListener("keydown", this.gameHandle, false);
+	    },
+
+    	render : function(){
+    		var state = this.state;
+    		var enemyCls = state.gameStart == 0 || state.aniEnd ?"enemy":("enemy enemy"+ state.enemyType +" speed" + state.enemySpeed + " loc" + state.enemyLoc);
+	        var boardCls;
+	        if(state.gameOver==1){
+	            boardCls = "board crashed";
+	        }else{
+	            boardCls = "board";
+	        }
+	        return(
+		        <div className={boardCls}>
+		            <div className={state.gameStart==1?"roadbed roadRun":"roadbed"}></div>
+		            <div className={state.gameStart==1?"road roadPlay":"road"}>
+		                <div className={state.heroLoc == 0?"hero left":"hero right"}><div className="body"></div><span className="light"></span></div>
+		                <div className={enemyCls} ref="enemy"><div className={state.chunge == 1?"body chunge":"body"}></div></div>
+		                <p className="help">方向键←和→控制左右</p>
+		            </div>
+		            <span className={state.gameState==0?"start":"start hide"} onClick={this.gameStart}></span>
+		            <span className="kilo">{state.kilometer}</span>
+		            <div className="failbub">
+		                <span className="failtext"></span>
+		                <span className="retry" onClick={this.gameRestart}></span>
+		            </div>
+		            
+		        </div>
+	       )
+    	}
+    });
+
+    ReactDOM.render(<GameBoard />,
+    	document.getElementById("reactCarGame")
+    );
+</script>
+</body>
+</html>
