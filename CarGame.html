@@ -31,8 +31,10 @@
 	            gameState : 0,
 	            gameStart :0,
 	            gameOver : 0,
-	            chunge : 0,
-	            aniEnd : true
+	            aniEnd : true,
+	            superMode :0,
+            	godMode : 0,
+            	hasSuper : 0,
 	        }
 	    },
 
@@ -46,8 +48,10 @@
 	            gameState : 1,
 	            gameStart :1,
 	            gameOver : 0,
-	            chunge : 0,
 	            aniEnd : true,
+	            superMode :0,
+            	godMode : 0,
+            	hasSuper : 0,
 	    	});
 	    	this.createEnemy();
 	    	this.gameTick(true);
@@ -65,14 +69,18 @@
 	    			heroLoc = _this.state.heroLoc;
                 	enemyLoc = _this.state.enemyLoc;
                 	if(dis>crash &&dis<(crash+220) && heroLoc == enemyLoc){
-                		//碰撞
-	                    _this.gameOver();
+                		if(_this.state.superMode==1){
+                			_this.superBuff();
+                		}else{
+	                		//碰撞
+		                    _this.gameOver();
+                		}
 	                }
 	                kilometer ++;
 	                _this.setState({kilometer:kilometer});
-	                // if(kilometer%1000==0){
-	                //     _this.superMode();
-	                // }
+	                if(kilometer%1000==0){
+	                    _this.superMode();
+	                }
 	    		},10) //60hz刷新
 	    	}else{
             	clearInterval(Tick);
@@ -100,8 +108,38 @@
 					case 39:
 	    				this.setState({heroLoc:1});
 	    				break;
+	    			case 32:
+	                    if(this.state.hasSuper==1){
+	                        this.setState({superMode : 1});
+	                        this.setState({hasSuper : 0});
+	                    }
+	                    break;
 	    		}
 	    	}
+	    },
+
+	    //Super模式
+	    mobileSuper: function(){
+	        if(this.state.hasSuper==1){
+	            this.setState({superMode : 1});
+	            this.setState({hasSuper : 0});
+	        }
+	    },
+
+	    superBuff : function(){
+	        var _this = this;
+	        _this.setState({godMode : 1});
+	        setTimeout(function(){
+	            _this.setState({godMode : 0});
+	        },1000);
+	    },
+
+	    superMode : function(){
+	        var _this = this;
+	        _this.setState({hasSuper : 1});
+	        setTimeout(function(){
+	            _this.setState({superMode : 0});
+	        },5000);
 	    },
 
 	    //创造敌人
@@ -129,7 +167,19 @@
 
 	    //渲染后绑定事件
 	    componentDidMount : function(){
+	    	var _this = this;
 	    	window.addEventListener("keydown", this.gameHandle, false);
+	    	//重力感应
+	    	window.addEventListener("devicemotion", function(event) {
+	            var eventaccelerationIncludingGravity = event.accelerationIncludingGravity;
+	            if(_this.state.gameState == 1){
+	                if(eventaccelerationIncludingGravity.x < -1){
+	                    _this.setState({heroLoc : 0});
+	                }else if(eventaccelerationIncludingGravity.x > 1){
+	                    _this.setState({heroLoc : 1});
+	                }
+	            }
+	        }, false);
 	    },
 
     	render : function(){
@@ -138,16 +188,19 @@
 	        var boardCls;
 	        if(state.gameOver==1){
 	            boardCls = "board crashed";
-	        }else{
+	        }else if(state.superMode==1){
+            	boardCls = "board superMode";
+        	}else{
 	            boardCls = "board";
 	        }
 	        return(
 		        <div className={boardCls}>
 		            <div className={state.gameStart==1?"roadbed roadRun":"roadbed"}></div>
 		            <div className={state.gameStart==1?"road roadPlay":"road"}>
-		                <div className={state.heroLoc == 0?"hero left":"hero right"}><div className="body"></div><span className="light"></span></div>
-		                <div className={enemyCls} ref="enemy"><div className={state.chunge == 1?"body chunge":"body"}></div></div>
+		                <div className={state.heroLoc == 0?"hero left":"hero right"} onClick={this.mobileSuper}><div className="body"></div><span className="light"></span></div>
+		                <div className={enemyCls} ref="enemy"><div className={state.godMode == 1?"body chunge":"body"}></div></div>
 		                <p className="help">方向键←和→控制左右</p>
+		                <p className={state.hasSuper==1?"helpsp show":"helpsp"}>空格键开启God模式！</p>
 		            </div>
 		            <span className={state.gameState==0?"start":"start hide"} onClick={this.gameStart}></span>
 		            <span className="kilo">{state.kilometer}</span>
